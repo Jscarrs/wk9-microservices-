@@ -1,44 +1,40 @@
 package com.lab.orders.controller;
 
+import java.math.BigDecimal;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import com.lab.orders.model.Order;
 import com.lab.orders.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Controller
-@ResponseBody
+@RequestMapping("/orders")
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+	private final OrderService orderService;
 
-    // Operation 1: Place a new order
-    @PostMapping("/orders/place")
-    public Order placeOrder(@RequestParam String accountId,
-                            @RequestParam String stockSymbol,
-                            @RequestParam int quantity,
-                            @RequestParam String orderType) {
-        return orderService.placeOrder(accountId, stockSymbol, quantity, orderType);
-    }
+	public OrderController(OrderService orderService) {
+		this.orderService = orderService;
+	}
 
-    // Operation 2: Get all orders
-    @GetMapping("/orders")
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
-    }
+	@GetMapping("/page")
+	public String showOrdersPage(Model model) {
+		model.addAttribute("orders", orderService.getAllOrders());
+		return "orders/index";
+	}
 
-    // Operation 3: Get order by ID
-    @GetMapping("/orders/{orderId}")
-    public Order getOrder(@PathVariable String orderId) {
-        return orderService.getOrderById(orderId);
-    }
-
-    // Operation 4: Cancel an order
-    @PostMapping("/orders/cancel/{orderId}")
-    public Order cancelOrder(@PathVariable String orderId) {
-        return orderService.cancelOrder(orderId);
-    }
+	@PostMapping("/store")
+	public String storeOrderFromPage(@RequestParam String accountId, @RequestParam String stockSymbol,
+			@RequestParam BigDecimal price, @RequestParam int quantity, @RequestParam String orderType,
+			RedirectAttributes redirectAttributes) {
+		Order order = orderService.placeOrder(accountId, stockSymbol, price, quantity, orderType);
+		redirectAttributes.addFlashAttribute("message", "Order stored successfully: " + order.getOrderId());
+		return "redirect:/orders/page";
+	}
 }

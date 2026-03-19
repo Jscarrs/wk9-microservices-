@@ -1,40 +1,33 @@
 package com.lab.orders.service;
 
-import com.lab.orders.model.Order;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import com.lab.orders.model.Order;
+import com.lab.orders.repository.OrderRepository;
 
 @Service
 public class OrderService {
 
-    private List<Order> orders = new ArrayList<>();
+	private final OrderRepository orderRepository;
+	private final OrderSyncService orderSyncService;
 
-    public Order placeOrder(String accountId, String stockSymbol, int quantity, String orderType) {
-        String orderId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Order order = new Order(orderId, accountId, stockSymbol, quantity, orderType, "PLACED");
-        orders.add(order);
-        return order;
-    }
+	public OrderService(OrderRepository orderRepository, OrderSyncService orderSyncService) {
+		this.orderRepository = orderRepository;
+		this.orderSyncService = orderSyncService;
+	}
 
-    public List<Order> getAllOrders() {
-        return orders;
-    }
+	public Order placeOrder(String accountId, String stockSymbol, BigDecimal price, int quantity, String orderType) {
+		Order order = new Order(null, LocalDate.now(), accountId, stockSymbol, price, quantity, orderType, "PLACED");
+		Order savedOrder = orderRepository.save(order);
+		orderSyncService.syncOrder(savedOrder);
+		return savedOrder;
+	}
 
-    public Order getOrderById(String orderId) {
-        return orders.stream()
-                .filter(o -> o.getOrderId().equals(orderId))
-                .findFirst()
-                .orElse(null);
-    }
-
-    public Order cancelOrder(String orderId) {
-        Order order = getOrderById(orderId);
-        if (order != null) {
-            order.setStatus("CANCELLED");
-        }
-        return order;
-    }
+	public List<Order> getAllOrders() {
+		return orderRepository.findAll();
+	}
 }
